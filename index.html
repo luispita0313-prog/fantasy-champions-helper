@@ -162,7 +162,7 @@
         <h1>Football Fantasy Helper</h1>
         <h2>Fase de Liga 26/27</h2>
         
-        <div id="loader">A carregar plantéis oficiais da UEFA Champions League através da API...</div>
+        <div id="loader">A carregar estatísticas e base de dados...</div>
 
         <div class="status-panel" id="status-panel" style="display: none;">
             <h3>Contagem por Equipa (Máx. 3)</h3>
@@ -197,50 +197,109 @@
 
     <script>
         let playersDB = [];
-        const API_TOKEN = '272256d5864c4b0a9caecf13a7cfe3eb'; 
+        
+        // ⚠️ ATENÇÃO: COLA AQUI O LINK CSV DO TEU GOOGLE SHEETS
+        const SHEET_CSV_URL = 'COLA_AQUI_O_LINK_DO_TEU_CSV'; 
+        
         const rules = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
+
+        // Função que aplica as regras oficiais da Champions League 26/27
+        function calcularPontos(p) {
+            let pts = 0;
+
+            // 1. Minutos jogados
+            if (p.minutos > 0) pts += 1;
+            if (p.minutos >= 60) pts += 1;
+
+            // 2. Golos Marcados
+            if (p.pos === 'GK' || p.pos === 'DEF') pts += (p.golos * 6);
+            else if (p.pos === 'MID') pts += (p.golos * 5);
+            else if (p.pos === 'FWD') pts += (p.golos * 4);
+
+            // 3. Golos de Fora da Área (Todos os jogadores)
+            pts += (p.golosForaArea * 1);
+
+            // 4. Assistências
+            pts += (p.assistencias * 3);
+
+            // 5. Clean Sheet (Mínimo 60 minutos e 0 golos sofridos)
+            if (p.minutos >= 60 && p.golosSofridos === 0) {
+                if (p.pos === 'GK' || p.pos === 'DEF') pts += 4;
+                else if (p.pos === 'MID') pts += 1;
+            }
+
+            // 6. Golos Sofridos (Apenas GK e DEF perdem pontos)
+            if (p.pos === 'GK' || p.pos === 'DEF') {
+                pts -= Math.floor(p.golosSofridos / 2);
+            }
+
+            // 7. Defesas (Apenas GK)
+            if (p.pos === 'GK') {
+                pts += Math.floor(p.defesasGK / 3);
+            }
+
+            // 8. Bolas Recuperadas (Todos os jogadores)
+            pts += Math.floor(p.bolasRecuperadas / 3);
+
+            // 9. Penáltis
+            if (p.pos === 'GK') pts += (p.penaltisDefendidos * 5);
+            pts += (p.penaltisSofridos * 2);
+            pts -= (p.penaltisCometidos * 1);
+            pts -= (p.penaltisFalhados * 2);
+
+            // 10. Autogolos e Cartões
+            pts -= (p.autogolos * 2);
+            pts -= (p.amarelos * 1);
+            pts -= (p.vermelhos * 3);
+
+            // 11. Homem do Jogo
+            if (p.motm > 0) pts += 3;
+
+            return pts;
+        }
 
         async function carregarPlanteis() {
             try {
-                // Usamos o corsproxy.io para contornar o bloqueio de CORS no GitHub Pages
-                const TARGET_URL = 'https://api.football-data.org/v4/competitions/CL/teams';
-                const PROXY_URL = 'https://corsproxy.io/?' + encodeURIComponent(TARGET_URL);
-
-                const response = await fetch(PROXY_URL, {
-                    method: 'GET',
-                    headers: {
-                        'X-Auth-Token': API_TOKEN
-                    }
-                });
-
-                if (!response.ok) throw new Error("Falha ao comunicar com a API");
+                const response = await fetch(SHEET_CSV_URL);
+                if (!response.ok) throw new Error("Falha ao carregar o Google Sheets");
                 
-                const data = await response.json();
-
-                const positionMap = {
-                    'Goalkeeper': 'GK',
-                    'Defence': 'DEF',
-                    'Midfield': 'MID',
-                    'Offence': 'FWD'
-                };
-
-                let autoId = 1;
-
-                data.teams.forEach(team => {
-                    if (team.squad) {
-                        team.squad.forEach(player => {
-                            const fantasyPos = positionMap[player.position];
-                            if (fantasyPos) { 
-                                playersDB.push({
-                                    id: autoId++,
-                                    name: player.name,
-                                    team: team.shortName || team.name, 
-                                    pos: fantasyPos
-                                });
-                            }
-                        });
+                const csvText = await response.text();
+                const linhas = csvText.split('\n');
+                
+                for (let i = 1; i < linhas.length; i++) {
+                    const linha = linhas[i].trim();
+                    if (!linha) continue;
+                    
+                    const col = linha.split(',');
+                    
+                    // Verifica as 19 colunas
+                    if (col.length >= 19) {
+                        let jogador = {
+                            id: parseInt(col[0]),
+                            name: col[1].trim(),
+                            team: col[2].trim(),
+                            pos: col[3].trim().toUpperCase(),
+                            minutos: parseInt(col[4]) || 0,
+                            golos: parseInt(col[5]) || 0,
+                            golosForaArea: parseInt(col[6]) || 0,
+                            assistencias: parseInt(col[7]) || 0,
+                            golosSofridos: parseInt(col[8]) || 0,
+                            bolasRecuperadas: parseInt(col[9]) || 0,
+                            defesasGK: parseInt(col[10]) || 0,
+                            amarelos: parseInt(col[11]) || 0,
+                            vermelhos: parseInt(col[12]) || 0,
+                            motm: parseInt(col[13]) || 0,
+                            penaltisDefendidos: parseInt(col[14]) || 0,
+                            penaltisSofridos: parseInt(col[15]) || 0,
+                            penaltisCometidos: parseInt(col[16]) || 0,
+                            penaltisFalhados: parseInt(col[17]) || 0,
+                            autogolos: parseInt(col[18]) || 0
+                        };
+                        
+                        jogador.pontos = calcularPontos(jogador);
+                        playersDB.push(jogador);
                     }
-                });
+                }
 
                 document.getElementById('loader').style.display = 'none';
                 document.getElementById('status-panel').style.display = 'block';
@@ -250,9 +309,9 @@
                 validateSquad();
 
             } catch (error) {
-                console.error("Erro na API:", error);
+                console.error("Erro ao carregar CSV:", error);
                 const loader = document.getElementById('loader');
-                loader.innerHTML = "Erro ao carregar os plantéis oficiais. Verifica o limite da API (máx. 10 pedidos/min).";
+                loader.innerHTML = "Erro ao carregar a base de dados. Verifica o link do CSV no código.";
                 loader.style.color = "var(--error-red)";
             }
         }
@@ -260,7 +319,10 @@
         function buildSelects() {
             Object.keys(rules).forEach(pos => {
                 const grid = document.getElementById(`grid-${pos}`);
-                const playersInPos = playersDB.filter(p => p.pos === pos).sort((a,b) => a.name.localeCompare(b.name));
+                grid.innerHTML = ''; 
+                
+                // Ordena os jogadores de cada posição pelos pontos calculados (do maior para o menor)
+                const playersInPos = playersDB.filter(p => p.pos === pos).sort((a,b) => b.pontos - a.pontos); 
                 
                 for(let i = 1; i <= rules[pos]; i++) {
                     let selectHTML = `
@@ -268,7 +330,7 @@
                             <label>Slot ${i}</label>
                             <select class="player-select" data-pos="${pos}" onchange="validateSquad()">
                                 <option value="">-- Selecionar --</option>
-                                ${playersInPos.map(p => `<option value="${p.team}\vert{}${p.name}">${p.name} (${p.team})</option>`).join('')}
+                                ${playersInPos.map(p => `<option value="${p.team}|${p.name}">${p.name} (${p.team}) - ⭐${p.pontos} Pts</option>`).join('')}
                             </select>
                         </div>
                     `;
@@ -339,7 +401,7 @@
         };
 
         function analyzeSquad() {
-            alert("A equipa é válida e está completa! Em breve o Gemini AI irá analisar estes 15 jogadores e dar as suas recomendações.");
+            alert("Equipa completa submetida com sucesso! Preparado para a análise avançada da IA com o novo sistema de pontuação.");
         }
     </script>
 </body>
