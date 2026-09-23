@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football Fantasy Helper - UCL 26/27</title>
+    <style>
+        :root {
+            --cl-blue: #0b0e27;
+            --cl-cyan: #00e0ff;
+            --cl-white: #ffffff;
+            --cl-dark-blue: #040613;
+            --error-red: #ff4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--cl-blue);
+            color: var(--cl-white);
+            margin: 0;
+            padding: 20px;
+            background-image: radial-gradient(circle at top right, #1a2254, var(--cl-dark-blue));
+            min-height: 100vh;
+        }
+
+        h1, h2, h3 {
+            text-align: center;
+            color: var(--cl-cyan);
+            text-transform: uppercase;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 224, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .position-group {
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--cl-cyan);
+        }
+
+        .position-title {
+            color: #ccc;
+            margin-top: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--cl-cyan);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            width: 100%;
+        }
+
+        select:focus {
+            outline: none;
+            box-shadow: 0 0 8px var(--cl-cyan);
+        }
+
+        .status-panel {
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #team-limits {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .team-badge {
+            background: rgba(255,255,255,0.1);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+        }
+
+        .team-badge.error {
+            background: rgba(255,68,68,0.2);
+            border: 1px solid var(--error-red);
+            color: var(--error-red);
+        }
+
+        button {
+            background-color: var(--cl-cyan);
+            color: var(--cl-dark-blue);
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            margin-top: 20px;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #00b3cc;
+        }
+        
+        button:disabled {
+            background-color: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        #error-message {
+            color: var(--error-red);
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            display: none;
+        }
+
+        #loader {
+            text-align: center;
+            color: var(--cl-cyan);
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Football Fantasy Helper</h1>
+        <h2>Fase de Liga 26/27</h2>
+        
+        <!-- Mensagem de loading inicial -->
+        <div id="loader">A carregar plantéis oficiais da UEFA Champions League...</div>
+
+        <div class="status-panel" id="status-panel" style="display: none;">
+            <h3>Contagem por Equipa (Máx. 3)</h3>
+            <div id="team-limits">Ainda não selecionaste jogadores.</div>
+        </div>
+
+        <form id="fantasy-form" style="display: none;">
+            <!-- Guarda-redes (2) -->
+            <div class="position-group">
+                <h3 class="position-title">Guarda-Redes (2)</h3>
+                <div class="players-grid" id="grid-GK"></div>
+            </div>
+
+            <!-- Defesas (5) -->
+            <div class="position-group">
+                <h3 class="position-title">Defesas (5)</h3>
+                <div class="players-grid" id="grid-DEF"></div>
+            </div>
+
+            <!-- Médios (5) -->
+            <div class="position-group">
+                <h3 class="position-title">Médios (5)</h3>
+                <div class="players-grid" id="grid-MID"></div>
+            </div>
+
+            <!-- Avançados (3) -->
+            <div class="position-group">
+                <h3 class="position-title">Avançados (3)</h3>
+                <div class="players-grid" id="grid-FWD"></div>
+            </div>
+
+            <div id="error-message"></div>
+            <button type="button" id="analyze-btn" onclick="analyzeSquad()" disabled>Analisar Plantel com AI</button>
+        </form>
+    </div>
+
+    <script>
+        let playersDB = [];
+        // A tua chave da API inserida diretamente
+        const API_TOKEN = '272256d5864c4b0a9caecf13a7cfe3eb'; 
+        const rules = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
+
+        async function carregarPlanteis() {
+            try {
+                // Comunicação com a API do football-data.org
+                const response = await fetch('https://api.football-data.org/v4/competitions/CL/teams', {
+                    method: 'GET',
+                    headers: {
+                        'X-Auth-Token': API_TOKEN
+                    }
+                });
+
+                if (!response.ok) throw new Error("Falha ao comunicar com a API");
+                
+                const data = await response.json();
+
+                const positionMap = {
+                    'Goalkeeper': 'GK',
+                    'Defence': 'DEF',
+                    'Midfield': 'MID',
+                    'Offence': 'FWD'
+                };
+
+                let autoId = 1;
+
+                // Converter os dados da API para o nosso formato
+                data.teams.forEach(team => {
+                    if (team.squad) {
+                        team.squad.forEach(player => {
+                            const fantasyPos = positionMap[player.position];
+                            if (fantasyPos) { 
+                                playersDB.push({
+                                    id: autoId++,
+                                    name: player.name,
+                                    team: team.shortName || team.name, 
+                                    pos: fantasyPos,
+                                    preco: 0 
+                                });
+                            }
+                        });
+                    }
+                });
+
+                // Esconder o loader e mostrar o formulário
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('status-panel').style.display = 'block';
+                document.getElementById('fantasy-form').style.display = 'block';
+                
+                buildSelects();
+                validateSquad();
+
+            } catch (error) {
+                console.error("Erro na API:", error);
+                const loader = document.getElementById('loader');
+                loader.innerHTML = "Erro ao carregar os plantéis oficiais. Verifica a tua ligação ou o limite da API (máx. 10 pedidos/min).";
+                loader.style.color = "var(--error-red)";
+            }
+        }
+
+        function buildSelects() {
+            Object.keys(rules).forEach(pos => {
+                const grid = document.getElementById(`grid-${pos}`);
+                const playersInPos = playersDB.filter(p => p.pos === pos).sort((a,b) => a.name.localeCompare(b.name));
+                
+                for(let i = 1; i <= rules[pos]; i++) {
+                    let selectHTML = `
+                        <div class="input-group">
+                            <label>Slot ${i}</label>
+                            <select class="player-select" data-pos="${pos}" onchange="validateSquad()">
+                                <option value="">-- Selecionar --</option>
+                                ${playersInPos.map(p => `<option value="${p.team}\vert{}${p.name}">${p.name} (${p.team})</option>`).join('')}
+                            </select>
+                        </div>
+                    `;
+                    grid.innerHTML += selectHTML;
+                }
+            });
+        }
+
+        function validateSquad() {
+            const selects = document.querySelectorAll('.player-select');
+            const teamCounts = {};
+            let filledSlots = 0;
+            let isValid = true;
+            let errorMsg = "";
+
+            selects.forEach(select => {
+                if (select.value) {
+                    filledSlots++;
+                    const team = select.value.split('|')[0];
+                    teamCounts[team] = (teamCounts[team] || 0) + 1;
+                }
+            });
+
+            const limitsDiv = document.getElementById('team-limits');
+            limitsDiv.innerHTML = '';
+            
+            Object.keys(teamCounts).forEach(team => {
+                const count = teamCounts[team];
+                const isError = count > 3;
+                if (isError) isValid = false;
+                
+                limitsDiv.innerHTML += `
+                    <span class="team-badge ${isError ? 'error' : ''}">
+                        ${team}: ${count}/3
+                    </span>
+                `;
+            });
+
+            if (Object.keys(teamCounts).length === 0) {
+                limitsDiv.innerHTML = 'Ainda não selecionaste jogadores.';
+            }
+
+            const errorDiv = document.getElementById('error-message');
+            const btn = document.getElementById('analyze-btn');
+
+            if (!isValid) {
+                errorMsg = "Erro: Tens mais de 3 jogadores da mesma equipa!";
+            } else if (filledSlots < 15) {
+                errorMsg = `Equipa incompleta: Selecionaste ${filledSlots} de 15 jogadores.`;
+                isValid = false; 
+            }
+
+            if (!isValid && filledSlots > 0) {
+                errorDiv.innerHTML = errorMsg;
+                errorDiv.style.display = 'block';
+                btn.disabled = true;
+            } else if (isValid && filledSlots === 15) {
+                errorDiv.style.display = 'none';
+                btn.disabled = false;
+            } else {
+                errorDiv.style.display = 'none';
+                btn.disabled = true;
+            }
+        }
+
+        window.onload = () => {
+            carregarPlanteis();
+        };
+
+        function analyzeSquad() {
+            alert("A equipa é válida e está completa! Em breve o Gemini AI irá analisar estes 15 jogadores e dar as suas recomendações.");
+        }
+    </script>
+</body>
+</html>
