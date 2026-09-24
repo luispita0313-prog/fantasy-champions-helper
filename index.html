@@ -4,20 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Football Fantasy Helper - O Teu Adjunto Tático</title>
-    <!-- Importação de Tipografia -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Cores Principais */
             --cl-blue: #0b0e27;
             --cl-cyan: #00e0ff;
             --cl-dark-blue: #040613;
             --cl-white: #ffffff;
-            
-            /* Cores Funcionais (Matriz de Calendário) */
-            --alert-red: #ff4444;    /* Jogo Difícil */
-            --easy-green: #00e676;   /* Jogo Fácil */
-            --diff-gold: #ffd700;    /* Diferencial */
+            --alert-red: #ff4444;    
+            --easy-green: #00e676;   
+            --diff-gold: #ffd700;    
         }
 
         body {
@@ -107,7 +103,6 @@
             box-shadow: 0 0 8px var(--cl-cyan);
         }
 
-        /* Matriz de Calendário */
         .fixtures-container {
             margin-top: 10px;
             font-size: 0.85em;
@@ -197,7 +192,6 @@
             margin-bottom: 20px;
         }
 
-        /* O Painel do Treinador Adjunto */
         .assistant-panel {
             margin-top: 30px;
             padding: 20px;
@@ -248,17 +242,14 @@
                 <h3 class="position-title">Guarda-Redes (2)</h3>
                 <div class="players-grid" id="grid-GK"></div>
             </div>
-
             <div class="position-group">
                 <h3 class="position-title">Defesas (5)</h3>
                 <div class="players-grid" id="grid-DEF"></div>
             </div>
-
             <div class="position-group">
                 <h3 class="position-title">Médios (5)</h3>
                 <div class="players-grid" id="grid-MID"></div>
             </div>
-
             <div class="position-group">
                 <h3 class="position-title">Avançados (3)</h3>
                 <div class="players-grid" id="grid-FWD"></div>
@@ -268,7 +259,6 @@
             <button type="button" id="analyze-btn" onclick="analyzeSquad()" disabled>Pedir Relatório ao Adjunto (IA)</button>
         </form>
 
-        <!-- PAINEL DO ADJUNTO -->
         <div class="assistant-panel" id="assistant-panel">
             <h3>⚽ Relatório do Adjunto Tático</h3>
             <p id="assistant-text">A contactar o Gemini para análise de calendário...</p>
@@ -276,65 +266,57 @@
     </div>
 
     <script>
-        // O LINK DO GOOGLE SHEETS COM AS TABELAS DE JOGADORES E CALENDÁRIO
-        const GOOGLE_SHEETS_PUBHTML_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pubhtml';
+        // ⚠️ SUBSTITUI PELOS TEUS DOIS LINKS CSV AQUI:
+        const URL_CSV_JOGADORES = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pubhtml?gid=0&single=true';
+        const URL_CSV_CALENDARIO = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pubhtml?gid=293790741&single=true';
 
         let playersDB = [];
         let fixturesDB = [];
         const rules = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
 
-        async function extractDataFromPubHtml(url) {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error("HTTP " + response.status + ": Ocorreu um erro ao carregar o link.");
-            }
-            const htmlText = await response.text();
-            
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlText, 'text/html');
-            
-            const tables = doc.querySelectorAll('table.waffle');
-            
-            if(tables.length === 0) {
-                throw new Error("Não foi encontrada nenhuma tabela no link. Certifica-te que publicaste a folha de cálculo corretamente como Página Web.");
-            }
-            
-            if(tables.length < 2) {
-                throw new Error("Apenas um separador foi encontrado (" + tables.length + "). Garante que no Google Sheets, ao Publicar, escolheste 'Todo o documento' e não apenas uma aba.");
-            }
-
-            // Extrair Tabela de Jogadores (Primeiro separador)
-            const rowsP = tables[0].querySelectorAll('tr');
-            for (let i = 2; i < rowsP.length; i++) {
-                const cols = rowsP[i].querySelectorAll('td');
-                if (cols.length >= 4 && cols[1].innerText.trim() !== "") {
-                    playersDB.push({
-                        id: parseInt(cols[0].innerText) || i,
-                        name: cols[1].innerText.trim(),
-                        team: cols[2].innerText.trim(),
-                        pos: cols[3].innerText.trim().toUpperCase()
-                    });
-                }
-            }
-
-            // Extrair Tabela de Calendário (Segundo separador)
-            const rowsF = tables[1].querySelectorAll('tr');
-            for (let i = 2; i < rowsF.length; i++) {
-                const cols = rowsF[i].querySelectorAll('td');
-                if (cols.length >= 4 && cols[2].innerText.trim() !== "") {
-                    fixturesDB.push({
-                        jornada: cols[0].innerText.trim(),
-                        data: cols[1].innerText.trim(),
-                        homeTeam: cols[2].innerText.trim(),
-                        awayTeam: cols[3].innerText.trim()
-                    });
-                }
-            }
-        }
-
         async function carregarDados() {
             try {
-                await extractDataFromPubHtml(GOOGLE_SHEETS_PUBHTML_URL);
+                // 1. Carregar Jogadores
+                const resJogadores = await fetch(URL_CSV_JOGADORES);
+                if (!resJogadores.ok) throw new Error("Falha ao aceder ao CSV dos Jogadores.");
+                const textJogadores = await resJogadores.text();
+                const linhasJ = textJogadores.split('\n');
+                
+                for (let i = 1; i < linhasJ.length; i++) {
+                    const linha = linhasJ[i].trim();
+                    if (!linha) continue;
+                    const cols = linha.split(',');
+                    
+                    if (cols.length >= 4 && cols[1].trim() !== "") {
+                        playersDB.push({
+                            id: parseInt(cols[0]) || i,
+                            name: cols[1].trim(),
+                            team: cols[2].trim(),
+                            pos: cols[3].trim().toUpperCase()
+                        });
+                    }
+                }
+
+                // 2. Carregar Calendário
+                const resCalendario = await fetch(URL_CSV_CALENDARIO);
+                if (!resCalendario.ok) throw new Error("Falha ao aceder ao CSV do Calendário.");
+                const textCalendario = await resCalendario.text();
+                const linhasC = textCalendario.split('\n');
+                
+                for (let i = 1; i < linhasC.length; i++) {
+                    const linha = linhasC[i].trim();
+                    if (!linha) continue;
+                    const cols = linha.split(',');
+                    
+                    if (cols.length >= 4 && cols[2].trim() !== "") {
+                        fixturesDB.push({
+                            jornada: cols[0].trim(),
+                            data: cols[1].trim(),
+                            homeTeam: cols[2].trim(),
+                            awayTeam: cols[3].trim()
+                        });
+                    }
+                }
                 
                 document.getElementById('loader').style.display = 'none';
                 document.getElementById('status-panel').style.display = 'block';
@@ -343,9 +325,9 @@
                 buildSelects();
 
             } catch (error) {
-                console.error("Erro ao carregar HTML:", error);
+                console.error("Erro ao carregar os dados:", error);
                 const loader = document.getElementById('loader');
-                loader.innerHTML = "Erro ao carregar a base de dados.<br>Detalhes: " + error.message;
+                loader.innerHTML = "Erro ao carregar a base de dados. Confirma se colaste os dois links CSV corretamente.<br>Detalhes: " + error.message;
                 loader.style.color = "var(--alert-red)";
             }
         }
