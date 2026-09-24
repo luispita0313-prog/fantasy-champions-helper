@@ -3,18 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Football Fantasy Helper - UCL 26/27</title>
+    <title>Football Fantasy Helper - O Teu Adjunto Tático</title>
+    <!-- Importação de Tipografia -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root {
+            /* Cores Principais */
             --cl-blue: #0b0e27;
             --cl-cyan: #00e0ff;
-            --cl-white: #ffffff;
             --cl-dark-blue: #040613;
-            --error-red: #ff4444;
+            --cl-white: #ffffff;
+            
+            /* Cores Funcionais (Matriz de Calendário) */
+            --alert-red: #ff4444;    /* Jogo Difícil */
+            --easy-green: #00e676;   /* Jogo Fácil */
+            --diff-gold: #ffd700;    /* Diferencial */
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--cl-blue);
             color: var(--cl-white);
             margin: 0;
@@ -23,9 +30,8 @@
             min-height: 100vh;
         }
 
-        h1, h2, h3 {
-            text-align: center;
-            color: var(--cl-cyan);
+        h1, h2, h3, button {
+            font-family: 'Montserrat', sans-serif;
             text-transform: uppercase;
         }
 
@@ -37,6 +43,16 @@
             border-radius: 12px;
             border: 1px solid rgba(0, 224, 255, 0.2);
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .slogan {
+            text-align: center;
+            color: #aaa;
+            font-size: 1.1em;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-top: -10px;
+            margin-bottom: 30px;
         }
 
         .position-group {
@@ -64,12 +80,16 @@
         .input-group {
             display: flex;
             flex-direction: column;
+            background: rgba(255,255,255,0.02);
+            padding: 10px;
+            border-radius: 6px;
         }
 
         label {
             font-size: 0.9em;
             margin-bottom: 5px;
             color: #aaa;
+            font-weight: 600;
         }
 
         select {
@@ -79,12 +99,34 @@
             background: rgba(0,0,0,0.5);
             color: white;
             width: 100%;
+            font-family: 'Inter', sans-serif;
         }
 
         select:focus {
             outline: none;
             box-shadow: 0 0 8px var(--cl-cyan);
         }
+
+        /* Matriz de Calendário */
+        .fixtures-container {
+            margin-top: 10px;
+            font-size: 0.85em;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .fixture-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+            font-weight: 600;
+        }
+        
+        /* Definir cores fixas por dificuldade (Exemplo simplificado) */
+        .fixture-badge.home { border-left: 3px solid var(--cl-cyan); }
+        .fixture-badge.away { border-left: 3px solid var(--diff-gold); }
 
         .status-panel {
             background: rgba(0,0,0,0.4);
@@ -111,8 +153,8 @@
 
         .team-badge.error {
             background: rgba(255,68,68,0.2);
-            border: 1px solid var(--error-red);
-            color: var(--error-red);
+            border: 1px solid var(--alert-red);
+            color: var(--alert-red);
         }
 
         button {
@@ -121,17 +163,18 @@
             border: none;
             padding: 15px 30px;
             font-size: 18px;
-            font-weight: bold;
+            font-weight: 900;
             border-radius: 8px;
             cursor: pointer;
             width: 100%;
             transition: all 0.3s ease;
-            text-transform: uppercase;
             margin-top: 20px;
         }
 
         button:hover:not(:disabled) {
             background-color: #00b3cc;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,224,255,0.3);
         }
         
         button:disabled {
@@ -141,7 +184,7 @@
         }
 
         #error-message {
-            color: var(--error-red);
+            color: var(--alert-red);
             text-align: center;
             margin-top: 15px;
             font-weight: bold;
@@ -154,18 +197,50 @@
             font-weight: bold;
             margin-bottom: 20px;
         }
+
+        /* O Painel do Treinador Adjunto */
+        .assistant-panel {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(0,224,255,0.1) 0%, rgba(11,14,39,0.9) 100%);
+            border: 1px solid var(--cl-cyan);
+            border-radius: 8px;
+            display: none;
+            border-left: 5px solid var(--cl-cyan);
+        }
+        .assistant-panel h3 { margin-top: 0; color: var(--cl-cyan); display: flex; align-items: center; gap: 10px; }
+        .assistant-panel p { line-height: 1.6; font-size: 1.05em; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Football Fantasy Helper</h1>
-        <h2>Fase de Liga 26/27</h2>
+        <!-- CABEÇALHO BRANDING -->
+        <div style="text-align: center; margin-bottom: 10px;">
+            <svg width="80" height="80" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="10" width="80" height="80" rx="8" fill="none" stroke="#00e0ff" stroke-width="2" opacity="0.3"/>
+                <circle cx="50" cy="50" r="15" fill="none" stroke="#00e0ff" stroke-width="2" opacity="0.3"/>
+                <line x1="10" y1="50" x2="90" y2="50" stroke="#00e0ff" stroke-width="2" opacity="0.3"/>
+                <path d="M30 70 L40 50 L35 30 L50 20 L65 30 L60 50 L70 70 L50 80 Z" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/>
+                <line x1="40" y1="50" x2="60" y2="50" stroke="#ffffff" stroke-width="2.5"/>
+                <line x1="50" y1="20" x2="50" y2="80" stroke="#ffffff" stroke-width="2.5"/>
+                <circle cx="30" cy="70" r="4" fill="#00e0ff"/>
+                <circle cx="40" cy="50" r="4" fill="#00e0ff"/>
+                <circle cx="35" cy="30" r="4" fill="#00e0ff"/>
+                <circle cx="50" cy="20" r="5" fill="#ffd700"/>
+                <circle cx="65" cy="30" r="4" fill="#00e0ff"/>
+                <circle cx="60" cy="50" r="4" fill="#00e0ff"/>
+                <circle cx="70" cy="70" r="4" fill="#00e0ff"/>
+                <circle cx="50" cy="80" r="4" fill="#00e0ff"/>
+            </svg>
+        </div>
+        <h1 style="text-align: center; margin-bottom: 5px; color: var(--cl-white); text-shadow: 0 0 10px var(--cl-cyan);">Football Fantasy Helper</h1>
+        <p class="slogan">JOGA COM O CALENDÁRIO. DOMINA O FANTASY.</p>
         
-        <div id="loader">A carregar estatísticas e base de dados...</div>
+        <div id="loader">A reunir dados táticos e calendário... (Isto pode demorar uns segundos)</div>
 
         <div class="status-panel" id="status-panel" style="display: none;">
-            <h3>Contagem por Equipa (Máx. 3)</h3>
+            <h3 style="margin-top:0;">Contagem por Clube (Máx. 3)</h3>
             <div id="team-limits">Ainda não selecionaste jogadores.</div>
         </div>
 
@@ -191,129 +266,98 @@
             </div>
 
             <div id="error-message"></div>
-            <button type="button" id="analyze-btn" onclick="analyzeSquad()" disabled>Analisar Plantel com AI</button>
+            <button type="button" id="analyze-btn" onclick="analyzeSquad()" disabled>Pedir Relatório ao Adjunto (IA)</button>
         </form>
+
+        <!-- PAINEL DO ADJUNTO -->
+        <div class="assistant-panel" id="assistant-panel">
+            <h3>⚽ Relatório do Adjunto Tático</h3>
+            <p id="assistant-text">A contactar o Gemini para análise de calendário...</p>
+        </div>
     </div>
 
     <script>
+        // ⚠️ ATENÇÃO: COLA AQUI O LINK DO TEU GOOGLE SHEETS PUBLICADO NA WEB (Termina em /pubhtml)
+        const GOOGLE_SHEETS_PUBHTML_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pubhtml'; 
+
         let playersDB = [];
-        
-        // ⚠️ ATENÇÃO: COLA AQUI O LINK CSV DO TEU GOOGLE SHEETS
-        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1G4obtWMOsjxtCgQSLZLmdnWPbQG5uQ2sArOf904NDHI/edit?gid=0#gid=0'; 
-        
+        let fixturesDB = [];
         const rules = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
 
-        // Função que aplica as regras oficiais da Champions League 26/27
-        function calcularPontos(p) {
-            let pts = 0;
-
-            // 1. Minutos jogados
-            if (p.minutos > 0) pts += 1;
-            if (p.minutos >= 60) pts += 1;
-
-            // 2. Golos Marcados
-            if (p.pos === 'GK' || p.pos === 'DEF') pts += (p.golos * 6);
-            else if (p.pos === 'MID') pts += (p.golos * 5);
-            else if (p.pos === 'FWD') pts += (p.golos * 4);
-
-            // 3. Golos de Fora da Área (Todos os jogadores)
-            pts += (p.golosForaArea * 1);
-
-            // 4. Assistências
-            pts += (p.assistencias * 3);
-
-            // 5. Clean Sheet (Mínimo 60 minutos e 0 golos sofridos)
-            if (p.minutos >= 60 && p.golosSofridos === 0) {
-                if (p.pos === 'GK' || p.pos === 'DEF') pts += 4;
-                else if (p.pos === 'MID') pts += 1;
+        async function extractDataFromPubHtml(url) {
+            const response = await fetch(url);
+            const htmlText = await response.text();
+            
+            // Usamos um elemento div escondido para fazer o parsing do HTML recebido
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            
+            // O Google Sheets pubhtml cria uma tabela HTML por cada separador
+            const tables = doc.querySelectorAll('table.waffle');
+            
+            if(tables.length < 2) {
+                throw new Error("Não foram encontrados 2 separadores na folha publicada. Confirma se publicaste o documento todo.");
             }
 
-            // 6. Golos Sofridos (Apenas GK e DEF perdem pontos)
-            if (p.pos === 'GK' || p.pos === 'DEF') {
-                pts -= Math.floor(p.golosSofridos / 2);
+            // Extrair Tabela de Jogadores (Primeiro separador)
+            const rowsP = tables[0].querySelectorAll('tr');
+            for (let i = 2; i < rowsP.length; i++) { // Ignora cabeçalhos
+                const cols = rowsP[i].querySelectorAll('td');
+                if (cols.length >= 4 && cols[1].innerText.trim() !== "") {
+                    playersDB.push({
+                        id: parseInt(cols[0].innerText) || i,
+                        name: cols[1].innerText.trim(),
+                        team: cols[2].innerText.trim(),
+                        pos: cols[3].innerText.trim().toUpperCase()
+                    });
+                }
             }
 
-            // 7. Defesas (Apenas GK)
-            if (p.pos === 'GK') {
-                pts += Math.floor(p.defesasGK / 3);
+            // Extrair Tabela de Calendário (Segundo separador)
+            const rowsF = tables[1].querySelectorAll('tr');
+            for (let i = 2; i < rowsF.length; i++) { // Ignora cabeçalhos
+                const cols = rowsF[i].querySelectorAll('td');
+                if (cols.length >= 4 && cols[2].innerText.trim() !== "") {
+                    fixturesDB.push({
+                        jornada: cols[0].innerText.trim(),
+                        data: cols[1].innerText.trim(),
+                        homeTeam: cols[2].innerText.trim(),
+                        awayTeam: cols[3].innerText.trim()
+                    });
+                }
             }
-
-            // 8. Bolas Recuperadas (Todos os jogadores)
-            pts += Math.floor(p.bolasRecuperadas / 3);
-
-            // 9. Penáltis
-            if (p.pos === 'GK') pts += (p.penaltisDefendidos * 5);
-            pts += (p.penaltisSofridos * 2);
-            pts -= (p.penaltisCometidos * 1);
-            pts -= (p.penaltisFalhados * 2);
-
-            // 10. Autogolos e Cartões
-            pts -= (p.autogolos * 2);
-            pts -= (p.amarelos * 1);
-            pts -= (p.vermelhos * 3);
-
-            // 11. Homem do Jogo
-            if (p.motm > 0) pts += 3;
-
-            return pts;
         }
 
-        async function carregarPlanteis() {
+        async function carregarDados() {
             try {
-                const response = await fetch(SHEET_CSV_URL);
-                if (!response.ok) throw new Error("Falha ao carregar o Google Sheets");
+                await extractDataFromPubHtml(GOOGLE_SHEETS_PUBHTML_URL);
                 
-                const csvText = await response.text();
-                const linhas = csvText.split('\n');
-                
-                for (let i = 1; i < linhas.length; i++) {
-                    const linha = linhas[i].trim();
-                    if (!linha) continue;
-                    
-                    const col = linha.split(',');
-                    
-                    // Verifica as 19 colunas
-                    if (col.length >= 19) {
-                        let jogador = {
-                            id: parseInt(col[0]),
-                            name: col[1].trim(),
-                            team: col[2].trim(),
-                            pos: col[3].trim().toUpperCase(),
-                            minutos: parseInt(col[4]) || 0,
-                            golos: parseInt(col[5]) || 0,
-                            golosForaArea: parseInt(col[6]) || 0,
-                            assistencias: parseInt(col[7]) || 0,
-                            golosSofridos: parseInt(col[8]) || 0,
-                            bolasRecuperadas: parseInt(col[9]) || 0,
-                            defesasGK: parseInt(col[10]) || 0,
-                            amarelos: parseInt(col[11]) || 0,
-                            vermelhos: parseInt(col[12]) || 0,
-                            motm: parseInt(col[13]) || 0,
-                            penaltisDefendidos: parseInt(col[14]) || 0,
-                            penaltisSofridos: parseInt(col[15]) || 0,
-                            penaltisCometidos: parseInt(col[16]) || 0,
-                            penaltisFalhados: parseInt(col[17]) || 0,
-                            autogolos: parseInt(col[18]) || 0
-                        };
-                        
-                        jogador.pontos = calcularPontos(jogador);
-                        playersDB.push(jogador);
-                    }
-                }
-
                 document.getElementById('loader').style.display = 'none';
                 document.getElementById('status-panel').style.display = 'block';
                 document.getElementById('fantasy-form').style.display = 'block';
                 
                 buildSelects();
-                validateSquad();
 
             } catch (error) {
-                console.error("Erro ao carregar CSV:", error);
+                console.error("Erro ao carregar HTML:", error);
                 const loader = document.getElementById('loader');
-                loader.innerHTML = "Erro ao carregar a base de dados. Verifica o link do CSV no código.";
-                loader.style.color = "var(--error-red)";
+                loader.innerHTML = "Erro ao carregar a base de dados. Confirma o link 'pubhtml' no código.<br>Detalhes: " + error.message;
+                loader.style.color = "var(--alert-red)";
             }
+        }
+
+        function getNextFixtures(teamName) {
+            let nextMatches = [];
+            // Procura os próximos 3 jogos onde a equipa entra
+            for (let match of fixturesDB) {
+                if (match.homeTeam === teamName) {
+                    nextMatches.push(`<span class="fixture-badge home" title="Jornada ${match.jornada}">C - ${match.awayTeam.substring(0,3).toUpperCase()}</span>`);
+                } else if (match.awayTeam === teamName) {
+                    nextMatches.push(`<span class="fixture-badge away" title="Jornada ${match.jornada}">F - ${match.homeTeam.substring(0,3).toUpperCase()}</span>`);
+                }
+                if (nextMatches.length >= 3) break;
+            }
+            return nextMatches.join('');
         }
 
         function buildSelects() {
@@ -321,22 +365,43 @@
                 const grid = document.getElementById(`grid-${pos}`);
                 grid.innerHTML = ''; 
                 
-                // Ordena os jogadores de cada posição pelos pontos calculados (do maior para o menor)
-                const playersInPos = playersDB.filter(p => p.pos === pos).sort((a,b) => b.pontos - a.pontos); 
+                const playersInPos = playersDB.filter(p => p.pos === pos).sort((a,b) => a.name.localeCompare(b.name)); 
                 
                 for(let i = 1; i <= rules[pos]; i++) {
+                    const selectId = `select-${pos}-${i}`;
+                    const fixContainerId = `fix-${pos}-${i}`;
+                    
                     let selectHTML = `
                         <div class="input-group">
                             <label>Slot ${i}</label>
-                            <select class="player-select" data-pos="${pos}" onchange="validateSquad()">
+                            <select id="${selectId}" class="player-select" data-pos="${pos}" onchange="updatePlayerSelection(this, '${fixContainerId}')">
                                 <option value="">-- Selecionar --</option>
-                                ${playersInPos.map(p => `<option value="${p.team}|${p.name}">${p.name} (${p.team}) - ⭐${p.pontos} Pts</option>`).join('')}
+                                ${playersInPos.map(p => `<option value="${p.team}\vert{}${p.name}">${p.name} (${p.team})</option>`).join('')}
                             </select>
+                            <div id="${fixContainerId}" class="fixtures-container"></div>
                         </div>
                     `;
                     grid.innerHTML += selectHTML;
                 }
             });
+        }
+
+        function updatePlayerSelection(selectElem, fixContainerId) {
+            const container = document.getElementById(fixContainerId);
+            container.innerHTML = ''; // Limpa anterior
+            
+            if (selectElem.value) {
+                const team = selectElem.value.split('|')[0];
+                const fixturesHtml = getNextFixtures(team);
+                
+                if (fixturesHtml) {
+                    container.innerHTML = `<strong>Próx:</strong> ${fixturesHtml}`;
+                } else {
+                    container.innerHTML = `<span style="color: gray;">S/ Jogos</span>`;
+                }
+            }
+            
+            validateSquad();
         }
 
         function validateSquad() {
@@ -377,9 +442,9 @@
             const btn = document.getElementById('analyze-btn');
 
             if (!isValid) {
-                errorMsg = "Erro: Tens mais de 3 jogadores da mesma equipa!";
+                errorMsg = "Mister, atenção! Tens mais de 3 jogadores da mesma equipa!";
             } else if (filledSlots < 15) {
-                errorMsg = `Equipa incompleta: Selecionaste ${filledSlots} de 15 jogadores.`;
+                errorMsg = `Plantel incompleto: Faltam ${15 - filledSlots} jogadores.`;
                 isValid = false; 
             }
 
@@ -396,13 +461,25 @@
             }
         }
 
-        window.onload = () => {
-            carregarPlanteis();
-        };
-
         function analyzeSquad() {
-            alert("Equipa completa submetida com sucesso! Preparado para a análise avançada da IA com o novo sistema de pontuação.");
+            const panel = document.getElementById('assistant-panel');
+            const textElem = document.getElementById('assistant-text');
+            panel.style.display = 'block';
+            
+            // Este é o placeholder da personalidade do Mister. No futuro será substituído pela resposta da API do Gemini.
+            textElem.innerHTML = `<em>"Mister, estou a analisar a matriz de calendário..."</em><br><br>
+                A tua estrutura defensiva parece sólida, mas temos um problema sério no ataque. 
+                Analisei os confrontos cruzados e o teu ponta de lança titular joga fora contra equipas que costumam baixar o bloco. 
+                Além disso, tens dois alas da mesma equipa e eles têm um jogo dificílimo fora na jornada 3 contra os líderes da liga.<br><br>
+                <strong>O meu conselho tático:</strong> Vende um dos extremos e investe num diferencial de baixo custo que tem 2 jogos seguidos em casa contra equipas de Pote 4. Vou preparar o relatório final!`;
+            
+            // Faz scroll automático para o painel
+            panel.scrollIntoView({ behavior: 'smooth' });
         }
+
+        window.onload = () => {
+            carregarDados();
+        };
     </script>
 </body>
 </html>
