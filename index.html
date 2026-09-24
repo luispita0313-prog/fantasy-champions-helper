@@ -124,7 +124,6 @@
             font-weight: 600;
         }
         
-        /* Definir cores fixas por dificuldade (Exemplo simplificado) */
         .fixture-badge.home { border-left: 3px solid var(--cl-cyan); }
         .fixture-badge.away { border-left: 3px solid var(--diff-gold); }
 
@@ -277,8 +276,8 @@
     </div>
 
     <script>
-        // ⚠️ ATENÇÃO: COLA AQUI O LINK DO TEU GOOGLE SHEETS PUBLICADO NA WEB (Termina em /pubhtml)
-        const GOOGLE_SHEETS_PUBHTML_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pubhtml'; 
+        // O teu link exato aqui
+        const GOOGLE_SHEETS_PUBHTML_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pubhtml';
 
         let playersDB = [];
         let fixturesDB = [];
@@ -286,22 +285,27 @@
 
         async function extractDataFromPubHtml(url) {
             const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error("HTTP " + response.status + ": Ocorreu um erro ao carregar o link.");
+            }
             const htmlText = await response.text();
             
-            // Usamos um elemento div escondido para fazer o parsing do HTML recebido
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlText, 'text/html');
             
-            // O Google Sheets pubhtml cria uma tabela HTML por cada separador
             const tables = doc.querySelectorAll('table.waffle');
             
+            if(tables.length === 0) {
+                throw new Error("Não foi encontrada nenhuma tabela no link. Certifica-te que publicaste a folha de cálculo corretamente como Página Web.");
+            }
+            
             if(tables.length < 2) {
-                throw new Error("Não foram encontrados 2 separadores na folha publicada. Confirma se publicaste o documento todo.");
+                throw new Error("Apenas um separador foi encontrado (" + tables.length + "). Garante que no Google Sheets, ao Publicar, escolheste 'Todo o documento' e não apenas uma aba.");
             }
 
             // Extrair Tabela de Jogadores (Primeiro separador)
             const rowsP = tables[0].querySelectorAll('tr');
-            for (let i = 2; i < rowsP.length; i++) { // Ignora cabeçalhos
+            for (let i = 2; i < rowsP.length; i++) {
                 const cols = rowsP[i].querySelectorAll('td');
                 if (cols.length >= 4 && cols[1].innerText.trim() !== "") {
                     playersDB.push({
@@ -315,7 +319,7 @@
 
             // Extrair Tabela de Calendário (Segundo separador)
             const rowsF = tables[1].querySelectorAll('tr');
-            for (let i = 2; i < rowsF.length; i++) { // Ignora cabeçalhos
+            for (let i = 2; i < rowsF.length; i++) {
                 const cols = rowsF[i].querySelectorAll('td');
                 if (cols.length >= 4 && cols[2].innerText.trim() !== "") {
                     fixturesDB.push({
@@ -341,14 +345,13 @@
             } catch (error) {
                 console.error("Erro ao carregar HTML:", error);
                 const loader = document.getElementById('loader');
-                loader.innerHTML = "Erro ao carregar a base de dados. Confirma o link 'pubhtml' no código.<br>Detalhes: " + error.message;
+                loader.innerHTML = "Erro ao carregar a base de dados.<br>Detalhes: " + error.message;
                 loader.style.color = "var(--alert-red)";
             }
         }
 
         function getNextFixtures(teamName) {
             let nextMatches = [];
-            // Procura os próximos 3 jogos onde a equipa entra
             for (let match of fixturesDB) {
                 if (match.homeTeam === teamName) {
                     nextMatches.push(`<span class="fixture-badge home" title="Jornada ${match.jornada}">C - ${match.awayTeam.substring(0,3).toUpperCase()}</span>`);
@@ -388,7 +391,7 @@
 
         function updatePlayerSelection(selectElem, fixContainerId) {
             const container = document.getElementById(fixContainerId);
-            container.innerHTML = ''; // Limpa anterior
+            container.innerHTML = ''; 
             
             if (selectElem.value) {
                 const team = selectElem.value.split('|')[0];
@@ -466,14 +469,12 @@
             const textElem = document.getElementById('assistant-text');
             panel.style.display = 'block';
             
-            // Este é o placeholder da personalidade do Mister. No futuro será substituído pela resposta da API do Gemini.
             textElem.innerHTML = `<em>"Mister, estou a analisar a matriz de calendário..."</em><br><br>
                 A tua estrutura defensiva parece sólida, mas temos um problema sério no ataque. 
                 Analisei os confrontos cruzados e o teu ponta de lança titular joga fora contra equipas que costumam baixar o bloco. 
                 Além disso, tens dois alas da mesma equipa e eles têm um jogo dificílimo fora na jornada 3 contra os líderes da liga.<br><br>
                 <strong>O meu conselho tático:</strong> Vende um dos extremos e investe num diferencial de baixo custo que tem 2 jogos seguidos em casa contra equipas de Pote 4. Vou preparar o relatório final!`;
             
-            // Faz scroll automático para o painel
             panel.scrollIntoView({ behavior: 'smooth' });
         }
 
