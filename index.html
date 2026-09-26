@@ -268,7 +268,68 @@
     <script>
         const URL_CSV_JOGADORES = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pub?gid=0&single=true&output=csv';
         const URL_CSV_CALENDARIO = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pub?gid=293790741&single=true&output=csv';
-        const GEMINI_API_KEY = '';
+        async function analyzeSquad() {
+            const panel = document.getElementById('assistant-panel');
+            const textElem = document.getElementById('assistant-text');
+            panel.style.display = 'block';
+            panel.scrollIntoView({ behavior: 'smooth' });
+            
+            textElem.innerHTML = `<em>"A analisar a estrutura, Mister... Dá-me um momento."</em>`;
+
+            const selects = document.querySelectorAll('.player-select');
+            let mySquad = [];
+            selects.forEach(select => {
+                if (select.value) {
+                    const team = select.value.split('|')[0];
+                    const name = select.value.split('|')[1];
+                    const pos = select.dataset.pos;
+                    
+                    const playerFixtures = fixturesDB.filter(f => f.homeTeam === team || f.awayTeam === team).slice(0, 3);
+                    let calendarTxt = playerFixtures.map(f => f.homeTeam === team ? `C-${f.awayTeam}` : `F-${f.homeTeam}`).join(', ');
+
+                    mySquad.push(`${pos} - ${name} (${team}) | Próximos: ${calendarTxt || 'S/ Jogos'}`);
+                }
+            });
+
+            if (mySquad.length === 0) {
+                textElem.innerHTML = "Mister, ainda não me deste o plantel para avaliar!";
+                return;
+            }
+
+            // O prompt de sistema com a persona de Treinador Adjunto de Elite[cite: 6]
+            const systemPrompt = `A tua persona é a de um Scout de Elite e Treinador Adjunto Especialista em Fantasy Football da UEFA Champions League. Trata sempre o utilizador por 'Mister'. O teu tom deve ser altamente pragmático, direto, tático e de confiança. Usa jargão de futebol profissional de forma natural (ex: bloco baixo, rotação de plantel, diferencial, matchup, explorar os canais, xG). Nunca escrevas textos robóticos genéricos. O teu único objetivo é alertar o Mister para jogadores que vão rodar (descansar) ou que têm um calendário terrível nas próximas 3 jornadas, e sugerir transferências cirúrgicas e calculistas para equipas com confrontos fáceis. Vai direto ao assunto, apresenta a tática e não tenhas medo de discordar das escolhas atuais do plantel se o calendário for mau.`;
+
+            const userPrompt = `Aqui está o meu plantel e os próximos 3 adversários de cada jogador: \n\n${mySquad.join('\n')}\n\nDá-me o teu conselho tático, Mister.`;
+
+            try {
+                // 🚀 AGORA FAZEMOS O PEDIDO PARA A NOSSA PRÓPRIA API (VERCEL) E NÃO PARA O GOOGLE
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ systemPrompt, userPrompt })
+                });
+
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.error || "Erro na comunicação com o servidor Vercel.");
+                }
+                
+                const data = await response.json();
+                
+                if (data.text) {
+                    let aiText = data.text.replace(/\n/g, '<br>');
+                    textElem.innerHTML = aiText;
+                } else {
+                    textElem.innerHTML = "O Adjunto perdeu as notas, tenta novamente.";
+                }
+
+            } catch (error) {
+                console.error(error);
+                textElem.innerHTML = `<span style="color:var(--alert-red)">Mister, ocorreu um erro na análise: ${error.message}</span>`;
+            }
+        }
 
         let playersDB = [];
         let fixturesDB = [];
