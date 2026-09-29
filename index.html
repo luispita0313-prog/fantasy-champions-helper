@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Football Fantasy Helper - O Teu Adjunto Tático</title>
+    <!-- Importação de Tipografia: Montserrat para títulos e Inter para dados[cite: 6] -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root {
+            /* Cores Principais e Funcionais[cite: 6] */
             --cl-blue: #0b0e27;
             --cl-cyan: #00e0ff;
             --cl-dark-blue: #040613;
@@ -208,15 +210,20 @@
 <body>
 
     <div class="container">
-        <!-- CABEÇALHO BRANDING -->
+        <!-- Logótipo Cérebro/Campo Tático SVG[cite: 6] -->
         <div style="text-align: center; margin-bottom: 10px;">
             <svg width="80" height="80" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- Fundo do Campo[cite: 6] -->
                 <rect x="10" y="10" width="80" height="80" rx="8" fill="none" stroke="#00e0ff" stroke-width="2" opacity="0.3"/>
                 <circle cx="50" cy="50" r="15" fill="none" stroke="#00e0ff" stroke-width="2" opacity="0.3"/>
                 <line x1="10" y1="50" x2="90" y2="50" stroke="#00e0ff" stroke-width="2" opacity="0.3"/>
+                
+                <!-- Conexões do Cérebro Digital / Táticas[cite: 6] -->
                 <path d="M30 70 L40 50 L35 30 L50 20 L65 30 L60 50 L70 70 L50 80 Z" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/>
                 <line x1="40" y1="50" x2="60" y2="50" stroke="#ffffff" stroke-width="2.5"/>
                 <line x1="50" y1="20" x2="50" y2="80" stroke="#ffffff" stroke-width="2.5"/>
+                
+                <!-- Nós (Dots)[cite: 6] -->
                 <circle cx="30" cy="70" r="4" fill="#00e0ff"/>
                 <circle cx="40" cy="50" r="4" fill="#00e0ff"/>
                 <circle cx="35" cy="30" r="4" fill="#00e0ff"/>
@@ -230,7 +237,7 @@
         <h1 style="text-align: center; margin-bottom: 5px; color: var(--cl-white); text-shadow: 0 0 10px var(--cl-cyan);">Football Fantasy Helper</h1>
         <p class="slogan">JOGA COM O CALENDÁRIO. DOMINA O FANTASY.</p>
         
-        <div id="loader">A reunir dados táticos, calendário e fadiga... (Isto pode demorar uns segundos)</div>
+        <div id="loader">A reunir dados táticos, classificação e fadiga... (Isto pode demorar uns segundos)</div>
 
         <div class="status-panel" id="status-panel" style="display: none;">
             <h3 style="margin-top:0;">Contagem por Clube (Máx. 3)</h3>
@@ -269,10 +276,15 @@
         const URL_CSV_JOGADORES = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pub?gid=0&single=true&output=csv';
         const URL_CSV_CALENDARIO = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pub?gid=293790741&single=true&output=csv';
         const URL_CSV_FADIGA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSlBYr3Ht2wzKTryMew2wXzewzjJk0eWnL_rZATuzqT1WxWslSKttqvdDaunn2VbcgWauJY5LgIOvab/pub?gid=2015796649&single=true&output=csv';
+        
+        // NOVO: Cola aqui o link CSV do separador Classificacao
+        const URL_CSV_CLASSIFICACAO = 'COLA_AQUI_O_TEU_NOVO_LINK_CSV_DA_CLASSIFICACAO';
 
         let playersDB = [];
         let fixturesDB = [];
         let fadigaDB = {};
+        let classificacaoDB = {}; // Novo Dicionário para as posições
+        
         const rules = { GK: 2, DEF: 5, MID: 5, FWD: 3 };
 
         async function carregarDados() {
@@ -326,7 +338,6 @@
                         const linha = linhasF[i].trim();
                         if (!linha) continue;
                         const cols = linha.split(',');
-                        // ID, Nome, Equipa, Jogo1, Jogo2, Jogo3, Jogo4, Jogo5
                         if (cols.length >= 8 && cols[1].trim() !== "") {
                             const nome = cols[1].trim();
                             const minutos = [cols[3], cols[4], cols[5], cols[6], cols[7]]
@@ -337,6 +348,30 @@
                             fadigaDB[nome] = minutos.replace(/DNPm/g, 'DNP').replace(/0m/g, '0 (Banco)'); 
                         }
                     }
+                }
+
+                // 4. Carregar Classificação
+                try {
+                    const resClassificacao = await fetch(URL_CSV_CLASSIFICACAO);
+                    if (resClassificacao.ok) {
+                        const textClass = await resClassificacao.text();
+                        const linhasClass = textClass.split('\n');
+                        // Assumindo a ordem: Posição, Equipa, Pontos, Jogos
+                        for (let i = 1; i < linhasClass.length; i++) {
+                            const linha = linhasClass[i].trim();
+                            if (!linha) continue;
+                            const cols = linha.split(',');
+                            if (cols.length >= 3 && cols[1].trim() !== "") {
+                                const posicao = cols[0].trim();
+                                const equipa = cols[1].trim().toLowerCase(); // Usar minúsculas para facilitar a procura
+                                const pontos = cols[2].trim();
+                                
+                                classificacaoDB[equipa] = `${posicao}º lugar (${pontos} pts)`;
+                            }
+                        }
+                    }
+                } catch(e) {
+                    console.log("Aviso: Dados de classificação ainda não configurados.");
                 }
                 
                 document.getElementById('loader').style.display = 'none';
@@ -473,22 +508,31 @@
             panel.style.display = 'block';
             panel.scrollIntoView({ behavior: 'smooth' });
             
-            textElem.innerHTML = `<em>"A analisar o calendário e o nível de fadiga do plantel, Mister... Dá-me um momento."</em>`;
+            textElem.innerHTML = `<em>"A analisar a fadiga, o calendário e a tabela classificativa, Mister... Dá-me um momento."</em>`;
 
             const selects = document.querySelectorAll('.player-select');
             let mySquad = [];
+            
             selects.forEach(select => {
                 if (select.value) {
                     const team = select.value.split('|')[0];
                     const name = select.value.split('|')[1];
                     const pos = select.dataset.pos;
                     
+                    // Extrair Jogos
                     const playerFixtures = fixturesDB.filter(f => f.homeTeam === team || f.awayTeam === team).slice(0, 3);
                     let calendarTxt = playerFixtures.map(f => f.homeTeam === team ? `C-${f.awayTeam}` : `F-${f.homeTeam}`).join(', ');
 
+                    // Extrair Fadiga
                     const fadigaTxt = fadigaDB[name] ? `Fadiga (últimos 5 jogos): ${fadigaDB[name]}` : 'Fadiga: S/ Dados recentes';
+                    
+                    // Extrair Classificação Cruzada
+                    const teamLower = team.toLowerCase();
+                    const classKey = Object.keys(classificacaoDB).find(k => k.includes(teamLower) || teamLower.includes(k));
+                    const classTxt = classKey ? classificacaoDB[classKey] : 'S/ Dados na Tabela';
 
-                    mySquad.push(`${pos} - ${name} (${team}) | Próximos: ${calendarTxt || 'S/ Jogos'} | ${fadigaTxt}`);
+                    // Frase ultra-detalhada para a IA
+                    mySquad.push(`${pos} - ${name} (${team}) | Próximos: ${calendarTxt || 'S/ Jogos'} | ${fadigaTxt} | Classificação: ${classTxt}`);
                 }
             });
 
@@ -497,9 +541,19 @@
                 return;
             }
 
-            const systemPrompt = `A tua persona é a de um Scout de Elite e Treinador Adjunto Especialista em Fantasy Football da UEFA Champions League. Trata sempre o utilizador por 'Mister'. O teu tom deve ser altamente pragmático, direto, tático e de confiança. Usa jargão de futebol profissional de forma natural (ex: bloco baixo, rotação de plantel, diferencial, matchup, explorar os canais, xG). Nunca escrevas textos robóticos genéricos. O teu único objetivo é alertar o Mister para jogadores que vão rodar (descansar) ou que têm um calendário terrível nas próximas 3 jornadas, e sugerir transferências cirúrgicas e calculistas para equipas com confrontos fáceis. Vai direto ao assunto, apresenta a tática e não tenhas medo de discordar das escolhas atuais do plantel se o calendário for mau. Considera atentamente a fadiga acumulada fornecida para prever quem vai ser poupado pelos treinadores reais.`;
+            // O novo prompt de sistema com as regras da tabela classificativa e persona de Scout[cite: 6]
+            const systemPrompt = `A tua persona é a de um Scout de Elite e Treinador Adjunto Especialista em Fantasy Football da UEFA Champions League. Trata sempre o utilizador por 'Mister'. O teu tom deve ser altamente pragmático, direto, tático e de confiança. Usa jargão de futebol profissional de forma natural (ex: bloco baixo, rotação de plantel, diferencial, matchup, explorar os canais, xG). Nunca escrevas textos robóticos genéricos.
 
-            const userPrompt = `Aqui está o meu plantel, os próximos 3 adversários e os minutos recentes de cada jogador: \n\n${mySquad.join('\n')}\n\nDá-me o teu conselho tático, Mister.`;
+O teu objetivo absoluto é alertar o Mister para jogadores com elevado risco de rotação ou calendários terríveis, e sugerir transferências cirúrgicas. 
+
+Para a tua análise, deves obrigatoriamente cruzar três variáveis fornecidas:
+1. A dificuldade dos próximos 3 adversários.
+2. A fadiga acumulada (minutos jogados recentemente).
+3. O contexto classificativo da equipa na Fase de Liga. 
+
+Aplica esta regra de ouro da Champions League: Equipas confortáveis no Top 8 (apuramento direto) ou já eliminadas (fundo da tabela) vão rodar o plantel brutalmente nas últimas jornadas. Equipas no meio da tabela a lutar pelo Playoff (9º ao 24º lugar) vão forçar os seus craques a jogar até à exaustão, mesmo com fadiga extrema. Vai direto ao assunto, desenha a tática e discorda das escolhas atuais se o enquadramento do jogador for mau.`;
+
+            const userPrompt = `Aqui está o meu plantel, os próximos 3 adversários, os minutos recentes e a classificação de cada equipa: \n\n${mySquad.join('\n')}\n\nDá-me o teu conselho tático, Mister.`;
 
             try {
                 const response = await fetch('/api/chat', {
